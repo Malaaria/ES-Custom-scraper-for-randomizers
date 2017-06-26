@@ -1,0 +1,10 @@
+<folders>
+	<game config="z1rand">
+		<!-- The name of the game in emulationstation -->
+		<name>zelda1randomizer</name>
+		<!-- The path where gamelists and images are stored -->
+		<pathEmulationStation>C:/Users/Fab/.emulationstation</pathEmulationStation>
+		<!-- The path where the roms are -->
+		<pathRoms>D:/Emulateurs/Roms/Zelda1</pathRoms>
+	</game>
+</folders>
