@@ -54,6 +54,10 @@ public class MainFrame {
 			public void actionPerformed(ActionEvent arg0) {
 				Zelda1Scraper z1s = new Zelda1Scraper();
 				z1s.doScrapeSAX();
+				Zelda2Scraper z2s = new Zelda2Scraper();
+				z2s.doScrapeSAX();
+				Zelda3Scraper z3s = new Zelda3Scraper();
+				z3s.doScrapeSAX();
 			}
 		});
 		frmScraperForRandomizers.getContentPane().add(btnScrape, BorderLayout.SOUTH);

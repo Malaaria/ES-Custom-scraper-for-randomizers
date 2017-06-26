@@ -17,13 +17,13 @@ import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-public class Zelda1Scraper {
+public class Zelda2Scraper {
 	String romsPath;	
 	String gameListPath;
 	String imagePath;
 	String nameES;
 
-	Zelda1Scraper(){
+	Zelda2Scraper(){
 		try {
 			loadConfigFile();
 		} catch (JDOMException e) {
@@ -66,7 +66,7 @@ public class Zelda1Scraper {
 								nameElement.addContent("Seed: " + splitname[1] + ", Flags: " + flags);
 								Element descElement = new Element("desc");
 								descElement.addContent("Seed: " + splitname[1] + "\n" +
-										"Flags: " + flags +  "\n\n" + 
+										"Flags: " + flags + "\n\n" + 
 										"* Ganon has shuffled all caverns and treasures.\n" +
 										"* Even the ennemies are not the same ! HP and drops shuffled.");
 								Element imageElement = new Element("image");
@@ -76,7 +76,7 @@ public class Zelda1Scraper {
 								Element releaseElement = new Element("releasedate");
 								releaseElement.addContent(formatDate.format(dateOfFile) + "T" + formatHeure.format(dateOfFile));
 								Element developerElement = new Element("developer");
-								developerElement.addContent("Fred Coughlin");
+								developerElement.addContent("Digshake");
 								Element publisherElement = new Element("publisher");
 								publisherElement.addContent("Nintendo");
 								Element genreElement = new Element("genre");
@@ -98,6 +98,8 @@ public class Zelda1Scraper {
 					FileOutputStream fosxml = new FileOutputStream(gameListPath);
 					sortie.output(gameListDocument, fosxml);
 					fosxml.close();
+					
+					cleanGameList();
 				}
 			}
 		} catch (JDOMException e) {
@@ -105,7 +107,6 @@ public class Zelda1Scraper {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		cleanGameList();
 	}
 
 	private boolean isGameInList(String pathOfGame){
@@ -113,9 +114,9 @@ public class Zelda1Scraper {
 		SAXBuilder sxb = new SAXBuilder();
 		Document gameListDocument;
 		Element racine;
-		File gameListFile = new File(gameListPath);
+		File gameListFileOld = new File(gameListPath);
 		try {
-			gameListDocument = sxb.build(gameListFile);
+			gameListDocument = sxb.build(gameListFileOld);
 			racine = gameListDocument.getRootElement();
 			List<Element> gameListList = racine.getChildren();
 			Iterator<Element> iterElement = gameListList.iterator();
@@ -136,8 +137,8 @@ public class Zelda1Scraper {
 	}
 
 	private String copyImage(String nameofGame) throws IOException{
-		String imageOriginale = "./zelda1.png";
-		String imageOfGame = nameofGame.substring(0, nameofGame.length() - 4) + ".png";		
+		String imageOriginale = "./zelda2.jpg";
+		String imageOfGame = nameofGame.substring(0, nameofGame.length() - 4) + ".jpg";		
 		File finalImage = new File(imagePath + imageOfGame);
 		if(!finalImage.exists()){
 			FileInputStream fis = new FileInputStream(imageOriginale);
@@ -163,7 +164,7 @@ public class Zelda1Scraper {
 		Iterator<Element> i = configList.iterator();
 		while(i.hasNext()){
 			Element gameElement = i.next();
-			if(gameElement.getAttributeValue("config").equals("z1rand")){				
+			if(gameElement.getAttributeValue("config").equals("z2rand")){				
 				this.nameES = gameElement.getChildText("name");
 				this.gameListPath = gameElement.getChildText("pathEmulationStation") + "/gamelists/" + this.nameES + "/gamelist.xml";
 				this.imagePath = gameElement.getChildText("pathEmulationStation") + "/downloaded_images/" + this.nameES + "/";

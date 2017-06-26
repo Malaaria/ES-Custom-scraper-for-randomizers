@@ -7,4 +7,20 @@
 		<!-- The path where the roms are -->
 		<pathRoms>D:/Emulateurs/Roms/Zelda1</pathRoms>
 	</game>
+	<game config="z2rand">
+		<!-- The name of the game in emulationstation -->
+		<name>zelda2randomizer</name>
+		<!-- The path where gamelists and images are stored -->
+		<pathEmulationStation>C:/Users/Fab/.emulationstation</pathEmulationStation>
+		<!-- The path where the roms are -->
+		<pathRoms>D:/Emulateurs/Roms/Zelda2</pathRoms>
+	</game>
+	<game config="z3rand">
+		<!-- The name of the game in emulationstation -->
+		<name>zelda3randomizer</name>
+		<!-- The path where gamelists and images are stored -->
+		<pathEmulationStation>C:/Users/Fab/.emulationstation</pathEmulationStation>
+		<!-- The path where the roms are -->
+		<pathRoms>D:/Emulateurs/Roms/Zelda3</pathRoms>
+	</game>
 </folders>
