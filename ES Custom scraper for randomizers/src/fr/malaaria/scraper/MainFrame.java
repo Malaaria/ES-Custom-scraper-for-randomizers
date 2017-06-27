@@ -1,17 +1,20 @@
 package fr.malaaria.scraper;
 
+import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JRadioButton;
-import java.awt.BorderLayout;
-import javax.swing.JButton;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 public class MainFrame {
 
-	private JFrame frmScraperForRandomizers;
+	private JFrame frmScraperForRandomizers;	
+	private JTextArea textAreaLog;
 
 	/**
 	 * Launch the application.
@@ -42,25 +45,35 @@ public class MainFrame {
 	private void initialize() {
 		frmScraperForRandomizers = new JFrame();
 		frmScraperForRandomizers.setTitle("Scraper for Randomizers");
-		frmScraperForRandomizers.setBounds(100, 100, 450, 300);
+		frmScraperForRandomizers.setBounds(100, 100, 654, 300);
 		frmScraperForRandomizers.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
+
 		JRadioButton rdbtnEmulationstation = new JRadioButton("EmulationStation");
 		rdbtnEmulationstation.setSelected(true);
 		frmScraperForRandomizers.getContentPane().add(rdbtnEmulationstation, BorderLayout.NORTH);
-		
+
 		JButton btnScrape = new JButton("Scrape");
 		btnScrape.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				Zelda1Scraper z1s = new Zelda1Scraper();
-				z1s.doScrapeSAX();
-				Zelda2Scraper z2s = new Zelda2Scraper();
-				z2s.doScrapeSAX();
-				Zelda3Scraper z3s = new Zelda3Scraper();
-				z3s.doScrapeSAX();
+			public void actionPerformed(ActionEvent arg0) {				   
+				SWCustom worker = new SWCustom(textAreaLog);					
+				
+				worker.execute();
+
 			}
 		});
 		frmScraperForRandomizers.getContentPane().add(btnScrape, BorderLayout.SOUTH);
+		
+		textAreaLog = new JTextArea();
+		JScrollPane scrollPane = new JScrollPane(textAreaLog);		
+		frmScraperForRandomizers.getContentPane().add(scrollPane, BorderLayout.CENTER);
+		
+		
+
+		
+	}
+
+	protected void addLogtext(String ptext){
+		textAreaLog.append(ptext + "\n");
 	}
 
 }

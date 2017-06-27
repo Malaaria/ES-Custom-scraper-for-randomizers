@@ -10,6 +10,9 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
+
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -17,14 +20,17 @@ import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-public class Zelda1Scraper {
+public class Zelda1Scraper extends SwingWorker<Object, String>{
 	String romsPath;	
 	String gameListPath;
 	String imagePath;
 	String nameES;
+	JTextArea logtext;
+	int numberOfGames;
 
-	Zelda1Scraper(){
+	Zelda1Scraper(JTextArea plog){
 		try {
+			logtext = plog;
 			loadConfigFile();
 		} catch (JDOMException e) {
 			e.printStackTrace();
@@ -58,6 +64,7 @@ public class Zelda1Scraper {
 						if(splitname.length!=1){
 							path = "./" + listOfFiles[i].getName();
 							if(!isGameInList(path)){
+								this.publish("Adding " + listOfFiles[i].getName());
 								flags = splitname[2].substring(0, splitname[2].length() - 4);
 								Element gameElement = new Element("game");
 								Element pathElement = new Element("path");
@@ -91,6 +98,7 @@ public class Zelda1Scraper {
 								gameElement.addContent(publisherElement);
 								gameElement.addContent(genreElement);
 								racine.addContent(gameElement);
+								this.numberOfGames++;
 							}
 						}
 					}
@@ -98,6 +106,7 @@ public class Zelda1Scraper {
 					FileOutputStream fosxml = new FileOutputStream(gameListPath);
 					sortie.output(gameListDocument, fosxml);
 					fosxml.close();
+					this.publish(numberOfGames + " games were added to " + gameListPath);
 				}
 			}
 		} catch (JDOMException e) {
@@ -131,12 +140,11 @@ public class Zelda1Scraper {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Path: " + pathOfGame + ", exist : " + result);
 		return result;
 	}
 
 	private String copyImage(String nameofGame) throws IOException{
-		String imageOriginale = "./zelda1.png";
+		String imageOriginale = "zelda1.png";
 		String imageOfGame = nameofGame.substring(0, nameofGame.length() - 4) + ".png";		
 		File finalImage = new File(imagePath + imageOfGame);
 		if(!finalImage.exists()){
@@ -156,18 +164,20 @@ public class Zelda1Scraper {
 		SAXBuilder sxb = new SAXBuilder();
 		Document configDocument;
 		Element racine;
-		File configFile = new File("./config.xml");
+		File configFile = new File("config.xml");
 		configDocument = sxb.build(configFile);
 		racine = configDocument.getRootElement();
 		List<Element> configList = racine.getChildren();
 		Iterator<Element> i = configList.iterator();
 		while(i.hasNext()){
 			Element gameElement = i.next();
-			if(gameElement.getAttributeValue("config").equals("z1rand")){				
+			if(gameElement.getAttributeValue("config").equals("z1rand")){		
+				this.publish("Loading config z1rand");
 				this.nameES = gameElement.getChildText("name");
 				this.gameListPath = gameElement.getChildText("pathEmulationStation") + "/gamelists/" + this.nameES + "/gamelist.xml";
 				this.imagePath = gameElement.getChildText("pathEmulationStation") + "/downloaded_images/" + this.nameES + "/";
 				this.romsPath = gameElement.getChildText("pathRoms");
+				this.numberOfGames = 0;
 			}
 		}
 	}
@@ -185,9 +195,9 @@ public class Zelda1Scraper {
 			while(iterElement.hasNext()){
 				Element gameElement = iterElement.next();				
 				String path = gameElement.getChildText("path");
-				File gameFile = new File(this.romsPath + "/" + path.substring(2, path.length()));
-				System.out.println("File: " + this.romsPath + "/" + path.substring(2, path.length()));
+				File gameFile = new File(this.romsPath + "/" + path.substring(2, path.length()));				
 				if(!gameFile.exists()){
+					this.publish("File cleaning: " + this.romsPath + "/" + path.substring(2, path.length()));
 					iterElement.remove();
 				}
 			}			
@@ -200,5 +210,16 @@ public class Zelda1Scraper {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	@Override
+	protected Object doInBackground() throws Exception {
+		return null;
+	}
+	
+	protected void process(List<String> chunks){
+		for (String s : chunks) {
+            logtext.append(s + "\n");;
+        }
 	}
 }
