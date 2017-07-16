@@ -4,6 +4,8 @@ package fr.malaaria.PDFDesigner.editors;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -13,6 +15,8 @@ import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.ErrorDialog;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.swt.SWT;
@@ -25,10 +29,10 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
@@ -46,6 +50,8 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 /**
  * An example showing how to create a multi-page editor.
@@ -62,12 +68,17 @@ public class PDFDesignerMultiPageEditor extends MultiPageEditorPart implements I
 	private TextEditor editor;
 
 	/** This is for the styler in page 1 */
-	private Label lblTitre;	
+	private PDDesignerMaquetteurLabel lblTitre;	
 	private Composite composite;	
 	private Canvas pageMaquetteur;
 	int width;
 	int height;
 	String pageFormat;
+	ScrollBar hBar;
+	ScrollBar vBar;
+	ArrayList<PDDesignerMaquetteurLabel> labelTab;
+	Button addLabelButton;
+	Point mouseCursorDown;
 
 	/** The text widget used in page 2. */
 	private StyledText text;
@@ -77,6 +88,7 @@ public class PDFDesignerMultiPageEditor extends MultiPageEditorPart implements I
 	public PDFDesignerMultiPageEditor() {
 		super();		
 		pageFormat = "A4";
+		labelTab = new ArrayList<PDDesignerMaquetteurLabel>();
 	}
 	/**
 	 * Creates page 0 of the multi-page editor,
@@ -219,7 +231,7 @@ public class PDFDesignerMultiPageEditor extends MultiPageEditorPart implements I
 	}
 
 	private boolean sizeCanvas(String sSize, boolean portrait){	
-		boolean page_FormatChange = pageFormat.equals(sSize);
+		boolean page_FormatChange = !pageFormat.equals(sSize);
 		int temp;
 		pageFormat = sSize;
 		//Composite composite = (Composite) super.getControl(1);		
@@ -265,9 +277,8 @@ public class PDFDesignerMultiPageEditor extends MultiPageEditorPart implements I
 		return page_FormatChange; 
 	}
 
-	@SuppressWarnings("unused")
 	private void buildMaquetteur() throws BadLocationException, JDOMException, IOException{
-		IEditorPart part = getEditor(0);		   
+		IEditorPart part = this.getEditor(0);		   
 		ITextEditor editor = (ITextEditor)part;
 		IDocumentProvider dp = editor.getDocumentProvider();
 		IDocument doc = dp.getDocument(editor.getEditorInput());		
@@ -275,72 +286,190 @@ public class PDFDesignerMultiPageEditor extends MultiPageEditorPart implements I
 		SAXBuilder sxb = new SAXBuilder();		   
 		InputStream stream = new ByteArrayInputStream(textOfCode.getBytes("UTF-8"));
 		Document document = sxb.build(stream);
-		Element racine = document.getRootElement();
-		List<Element> listElement = racine.getChildren();
-		Iterator<Element> iterElement = listElement.iterator();		
-		Composite composite = (Composite)getControl(1);
-		Element sizeElement = racine.getChild("size");		
+		Element racine = document.getRootElement();		
+		Composite composite = (Composite)getControl(1);		
+		Element orientationElement = racine.getChild("orientation");
+		boolean portrait = true;
+		if(orientationElement != null){
+			portrait = !orientationElement.getValue().equals("landscape");
+		}		
+
 		boolean pageFormatChange = false;
-		final Point origin = new Point (0, 0);		
+		Element sizeElement = racine.getChild("size");				
 		if(sizeElement != null){
-			pageFormatChange = sizeCanvas(sizeElement.getValue(), true);				
+			pageFormatChange = sizeCanvas(sizeElement.getValue(), portrait);		
 		}
+		final Point origin = new Point (0, 0);	
+		Point sizeOfContainer = getContainer().getSize();
+		FormData pageMaquetteurData = new FormData();
+		// On enlève 20 pour voir le bord du canvas qui peut être masqué par des onglets
+		pageMaquetteurData.height = (height)<=sizeOfContainer.y-20?height:sizeOfContainer.y-20;
+		pageMaquetteurData.width = (width)<=sizeOfContainer.x-20?width:sizeOfContainer.x-20;
+		pageMaquetteurData.top = new FormAttachment(pageMaquetteur, 40);
 		if(pageMaquetteur == null || pageFormatChange){
 			if(pageMaquetteur != null){
 				pageMaquetteur.dispose();
+				hBar.dispose();
+				vBar.dispose();
 			}
 			pageMaquetteur = new Canvas(composite, SWT.H_SCROLL | SWT.V_SCROLL);
-			ScrollBar hBar = pageMaquetteur.getHorizontalBar();
-			ScrollBar vBar = pageMaquetteur.getVerticalBar();										
-			Point sizeOfContainer = getContainer().getSize();
-			FormData pageMaquetteurData = new FormData();
-			pageMaquetteurData.height = (height)<=sizeOfContainer.y-20?height:sizeOfContainer.y-20;
-			pageMaquetteurData.width = (width)<=sizeOfContainer.x-20?width:sizeOfContainer.x-20;
+			pageMaquetteur.setLayout(new FormLayout());
+			hBar = pageMaquetteur.getHorizontalBar();
+			vBar = pageMaquetteur.getVerticalBar();										
+
 			pageMaquetteur.setLayoutData(pageMaquetteurData);			
 			hBar.addListener(SWT.Selection, e -> {
 				int hSelection = hBar.getSelection ();
 				int destX = -hSelection - origin.x;						
 				pageMaquetteur.scroll (destX, 0, 0, 0, pageMaquetteur.getClientArea().width, pageMaquetteur.getClientArea().height, false);
 				origin.x = -hSelection;				
+				for(int i=0;i<labelTab.size();i++){
+					labelTab.get(i).setOrigin(new Point(-hSelection, labelTab.get(i).getOrigin().y));
+				}				
 			});
 			vBar.addListener (SWT.Selection, e -> {
 				int vSelection = vBar.getSelection ();
 				int destY = -vSelection - origin.y;							
 				pageMaquetteur.scroll (0, destY, 0, 0, pageMaquetteur.getClientArea().width, pageMaquetteur.getClientArea().height, false);
-				origin.y = -vSelection;				
-			});
+				origin.y = -vSelection;			
+				for(int i=0;i<labelTab.size();i++){
+					labelTab.get(i).setOrigin(new Point(labelTab.get(i).getOrigin().x, -vSelection));					
+				}				
+			});			
 		}
+		
+		labelTab.clear();
+		Element labelsElement = racine.getChild("labels");
+		List<Element> listElement = labelsElement.getChildren();
+		Iterator<Element> iterElement = listElement.iterator();		
+		while(iterElement.hasNext()){
+			Element labelElement = iterElement.next();	
+			PDDesignerMaquetteurLabel labelAStocker = new PDDesignerMaquetteurLabel(composite, SWT.NONE);
+			Element posXElement = labelElement.getChild("posx");
+			Element posYElement = labelElement.getChild("posy");
+			Element texteElement = labelElement.getChild("texte");
+			labelAStocker.setText(texteElement.getValue());
+			labelAStocker.setLeftOffset(Integer.parseInt(posXElement.getValue()));
+			labelAStocker.setTopOffset(Integer.parseInt(posYElement.getValue()));
+			labelTab.add(labelAStocker);
+		}		
+		
 		pageMaquetteur.addPaintListener(new PaintListener() {
 			public void paintControl(PaintEvent e) {
-				// Do some drawing
+				// Repeindre le canvas
 				Color white = new Color (getContainer().getDisplay(), 0xFF, 0xFF, 0xFF);
 				Color red = new Color (getContainer().getDisplay(), 0, 0, 0);
 				e.gc.setBackground(white);
-				e.gc.setForeground(red);					
-				e.gc.fillRectangle(origin.x, origin.y, width, height);				
-				for(int i0=0;i0<height;i0 += 30){
-					e.gc.drawText("Ligne " + i0, 50, 20+i0+origin.y);
-				}															
+				e.gc.setForeground(red);								
+				e.gc.fillRectangle(0, 0, width, height);		
+				/*for(int i=0;i<labelTab.size();i++){
+					labelTab.get(i).
+				}*/
 				white.dispose();		
 				red.dispose();											
 			}
 		});
 		Element nameElement = racine.getChild("name");
 		if(nameElement != null){
-			if(lblTitre == null){
-				FormData lblTitreData = new FormData();
-				lblTitreData.left = new FormAttachment(800, 0);
-				lblTitre = new Label(composite, SWT.NONE);
-				lblTitre.setText(nameElement.getValue());
-				lblTitre.setLayoutData(lblTitreData);
-				lblTitre.setVisible(true);
+			if(lblTitre == null){								
+				lblTitre = new PDDesignerMaquetteurLabel(composite, SWT.NONE);
+				lblTitre.setText(nameElement.getValue());				
 			}
 		}
-		while(iterElement.hasNext()){
-			Element detailElement = iterElement.next();	
-			// Dot things with the list			
-		}		
-		composite.layout();		
+		addLabelButton = new Button(composite, SWT.NONE);
+		FormData addLabelButtonData = new FormData();
+		addLabelButtonData.left = new FormAttachment(composite, 130);
+		addLabelButton.setLayoutData(addLabelButtonData);
+		addLabelButton.setText("Ajouter Texte");
+		addLabelButton.addListener(SWT.MouseUp, e -> {
+			spawnNewLabel();
+		});
+
 		
+		pageMaquetteur.redraw();
+		composite.layout();		
+	}
+
+	private String printPointLocation(Point p){
+		String result = "";
+		result = "x:" + p.x + ", y:" + p.y;
+		return result;
+	}
+	
+	private void mdText(String text){
+		MessageDialog.openInformation(getContainer().getShell(), "Debug", text);
+	}
+
+	private void saveLabelsInEditor(){
+		IEditorPart part = this.getEditor(0);		   
+		ITextEditor editor = (ITextEditor)part;
+		IDocumentProvider dp = editor.getDocumentProvider();
+		IDocument doc = dp.getDocument(editor.getEditorInput());		
+		String textOfCode;
+		try {
+			textOfCode = doc.get(0, doc.getLength());		 
+			SAXBuilder sxb = new SAXBuilder();		
+			InputStream stream = new ByteArrayInputStream(textOfCode.getBytes("UTF-8"));
+			Document document = sxb.build(stream);
+			Element racine = document.getRootElement();
+			Element elementLabels = racine.getChild("labels");			
+			elementLabels.removeChildren("label");					
+			for(int i=0;i<labelTab.size();i++){
+				PDDesignerMaquetteurLabel labelEnCours = labelTab.get(i);				
+				Element elementLabel = new Element("label");
+				Element elementPosX = new Element("posx");
+				elementPosX.addContent(Integer.toString(labelEnCours.getFormData().left.offset));
+				Element elementPosY = new Element("posy");
+				elementPosY.addContent(Integer.toString(labelEnCours.getFormData().top.offset));
+				Element elementTexte = new Element("texte");
+				elementTexte.addContent(labelEnCours.getText());
+				elementLabel.addContent(elementPosX);
+				elementLabel.addContent(elementPosY);
+				elementLabel.addContent(elementTexte);
+				elementLabels.addContent(elementLabel);				
+			}			
+			doc.set(new XMLOutputter(Format.getPrettyFormat()).outputString(document));		
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}catch (BadLocationException e) {
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void spawnNewLabel(){
+		PDDesignerMaquetteurLabel newLabel = new PDDesignerMaquetteurLabel(pageMaquetteur, SWT.NONE, 100, 20);			
+		newLabel.setText("Texte");						
+		newLabel.addListener(SWT.MouseUp, e1 -> {
+			Point cursorLocation = Display.getCurrent().getCursorLocation();
+			int varx = cursorLocation.x - mouseCursorDown.x;
+			int vary = cursorLocation.y - mouseCursorDown.y;
+			newLabel.setLeftOffset(newLabel.getFormData().left.offset + varx);								
+			newLabel.setTopOffset(newLabel.getFormData().top.offset + vary);
+			pageMaquetteur.layout();			
+			mouseCursorDown = null;
+			saveLabelsInEditor();				
+		});
+		newLabel.addListener(SWT.MouseDown, e2 -> {
+			if(mouseCursorDown == null){
+				mouseCursorDown = Display.getCurrent().getCursorLocation();
+			}
+		});
+		newLabel.addListener(SWT.MouseMove, e3 -> {
+			if(mouseCursorDown != null){
+				Point cursorLocation = Display.getCurrent().getCursorLocation();
+				int varx = cursorLocation.x - mouseCursorDown.x;
+				int vary = cursorLocation.y - mouseCursorDown.y;
+				newLabel.setLeftOffset(newLabel.getFormData().left.offset + varx);								
+				newLabel.setTopOffset(newLabel.getFormData().top.offset + vary);
+				mouseCursorDown = cursorLocation;
+				pageMaquetteur.layout();
+			}
+		});
+		labelTab.add(newLabel);
+		pageMaquetteur.layout();
 	}
 }
