@@ -168,6 +168,10 @@ public class Zelda3Scraper extends SwingWorker<Object, String>{
 		String imageOriginale = "zelda3.jpg";
 		String imageOfGame = nameofGame.substring(0, nameofGame.length() - 4) + ".jpg";		
 		File finalImage = new File(imagePath + imageOfGame);
+		File folder = new File(imagePath);
+		if(!folder.exists()){
+			folder.mkdirs();
+		}
 		if(!finalImage.exists()){
 			FileInputStream fis = new FileInputStream(imageOriginale);
 			FileOutputStream fos = new FileOutputStream(imagePath + imageOfGame);

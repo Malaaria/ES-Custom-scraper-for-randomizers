@@ -23,4 +23,12 @@
 		<!-- The path where the roms are -->
 		<pathRoms>D:/Emulateurs/Roms/Zelda3</pathRoms>
 	</game>
+	<game config="smitemrand">
+		<!-- The name of the game in emulationstation -->
+		<name>smitemrandomizer</name>
+		<!-- The path where gamelists and images are stored -->
+		<pathEmulationStation>C:/Users/Fab/.emulationstation</pathEmulationStation>
+		<!-- The path where the roms are -->
+		<pathRoms>D:/Emulateurs/Roms/SMItem</pathRoms>
+	</game>
 </folders>

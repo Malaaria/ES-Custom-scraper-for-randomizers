@@ -20,7 +20,7 @@ import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-public class Zelda1Scraper extends SwingWorker<Object, String>{
+public class SMItemScraper extends SwingWorker<Object, String>{
 	String romsPath;	
 	String gameListPath;
 	String imagePath;
@@ -28,7 +28,7 @@ public class Zelda1Scraper extends SwingWorker<Object, String>{
 	JTextArea logtext;
 	int numberOfGames;
 
-	Zelda1Scraper(JTextArea plog){
+	SMItemScraper(JTextArea plog){
 		try {
 			logtext = plog;
 			loadConfigFile();
@@ -54,26 +54,43 @@ public class Zelda1Scraper extends SwingWorker<Object, String>{
 					File[] listOfFiles = folder.listFiles();
 					Date dateOfFile;
 					SimpleDateFormat formatDate = new SimpleDateFormat("yyyyMMdd");
-					SimpleDateFormat formatHeure = new SimpleDateFormat("HHmmss");
-					String flags = "";
+					SimpleDateFormat formatHeure = new SimpleDateFormat("HHmmss");					
 					String path = "";
+					String type = "";
+					String seed = "";					
+					String type_lib = "";
 					for(int i=0;i<listOfFiles.length;i++){
-						splitname = listOfFiles[i].getName().split("_");
+						splitname = listOfFiles[i].getName().split(" ");
 						dateOfFile = Date.from(Instant.ofEpochMilli(listOfFiles[i].lastModified()));
 						// On ne créé pas le jeu original
 						if(splitname.length!=1){
 							path = "./" + listOfFiles[i].getName();
 							if(!isGameInList(path)){
 								this.publish("Adding " + listOfFiles[i].getName());
-								flags = splitname[2].substring(0, splitname[2].length() - 4);
+								type = splitname[2].substring(0, 1);
+								if(type.equals("X")){
+									// Normal (1 letter)
+									type_lib = "Normal";
+								}else{
+									// Other mode (2 letters)
+									type = splitname[2].substring(0, 2);
+									if(type.equals("CX")){
+										type_lib = "Casual";
+									}else if(type.equals("HX")){
+										type_lib = "Hard";
+									}else if(type.equals("TX")){
+										type_lib = "Tournament";
+									}
+								}
+								seed = splitname[2].substring(type.length(), splitname[2].length() - 4);							
 								Element gameElement = new Element("game");
 								Element pathElement = new Element("path");
 								pathElement.addContent(path);
 								Element nameElement = new Element("name");
-								nameElement.addContent("Seed: " + splitname[1] + ", Flags: " + flags);
+								nameElement.addContent("Seed: " + seed + ", Type: " + type_lib);
 								Element descElement = new Element("desc");
-								descElement.addContent("Seed: " + splitname[1] + "\n" +
-										"Flags: " + flags +  "\n\n" + 
+								descElement.addContent("Seed: " + seed + "\n" +
+										"Type: " + type_lib +  "\n\n" + 
 										"* Ganon has shuffled all caverns and treasures.\n" +
 										"* Even the ennemies are not the same ! HP and drops shuffled.");
 								Element imageElement = new Element("image");
@@ -83,7 +100,7 @@ public class Zelda1Scraper extends SwingWorker<Object, String>{
 								Element releaseElement = new Element("releasedate");
 								releaseElement.addContent(formatDate.format(dateOfFile) + "T" + formatHeure.format(dateOfFile));
 								Element developerElement = new Element("developer");
-								developerElement.addContent("Fred Coughlin");
+								developerElement.addContent("tewtal");
 								Element publisherElement = new Element("publisher");
 								publisherElement.addContent("Nintendo");
 								Element genreElement = new Element("genre");
@@ -144,7 +161,7 @@ public class Zelda1Scraper extends SwingWorker<Object, String>{
 	}
 
 	private String copyImage(String nameofGame) throws IOException{
-		String imageOriginale = "zelda1.png";
+		String imageOriginale = "supermetroid.png";
 		String imageOfGame = nameofGame.substring(0, nameofGame.length() - 4) + ".png";		
 		File finalImage = new File(imagePath + imageOfGame);
 		File folder = new File(imagePath);
@@ -175,8 +192,8 @@ public class Zelda1Scraper extends SwingWorker<Object, String>{
 		Iterator<Element> i = configList.iterator();
 		while(i.hasNext()){
 			Element gameElement = i.next();
-			if(gameElement.getAttributeValue("config").equals("z1rand")){		
-				this.publish("Loading config z1rand");
+			if(gameElement.getAttributeValue("config").equals("smitemrand")){		
+				this.publish("Loading config smitemrand");
 				this.nameES = gameElement.getChildText("name");
 				this.gameListPath = gameElement.getChildText("pathEmulationStation") + "/gamelists/" + this.nameES + "/gamelist.xml";
 				this.imagePath = gameElement.getChildText("pathEmulationStation") + "/downloaded_images/" + this.nameES + "/";

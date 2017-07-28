@@ -23,6 +23,8 @@ public class SWCustom extends SwingWorker<Object, String>{
 		z2s.doScrapeSAX();
 		Zelda3Scraper z3s = new Zelda3Scraper(logtext);
 		z3s.doScrapeSAX();
+		SMItemScraper smis = new SMItemScraper(logtext);
+		smis.doScrapeSAX();
 		this.publish("Done.");
 		return null;
 	}
