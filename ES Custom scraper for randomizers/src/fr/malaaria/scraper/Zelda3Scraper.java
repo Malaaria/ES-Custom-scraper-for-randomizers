@@ -63,18 +63,26 @@ public class Zelda3Scraper extends SwingWorker<Object, String>{
 					String path = "";
 					String version = "";
 					String seed = "";
+					String type = "";
 					for(int i=0;i<listOfFiles.length;i++){
 						if(listOfFiles[i].isFile()){
 							splitname = listOfFiles[i].getName().split("_");						
-							// On ne créé pas le jeu original
+							// We do not create the original game
 							if(splitname.length!=1){
 								for(int j=0;j<splitname.length;j++){
 									splitoptions[j] = splitname[j].split("-");
 								}
+								if(splitname[0].equals("ER")){
+									type = "Entrance Ramdomizer";
+									logic = splitoptions[1][1] + " " + splitoptions[1][2];
+									version = splitoptions[1][3];
+								}else{
+									type = "Item Randomizer";
+									logic = splitoptions[1][0] + " " + splitoptions[1][1];
+									version = splitoptions[1][2];
+								}
 								dateOfFile = Date.from(Instant.ofEpochMilli(listOfFiles[i].lastModified()));
-								mode = splitoptions[2][1];
-								logic = splitoptions[1][0] + " " + splitoptions[1][1];
-								version = splitoptions[1][2];
+								mode = splitoptions[2][1];								
 								difficulty = splitoptions[2][0];
 								goal = splitoptions[2][2];
 								seed = splitname[3].substring(0, splitname[3].length()-4);
@@ -85,11 +93,12 @@ public class Zelda3Scraper extends SwingWorker<Object, String>{
 									Element pathElement = new Element("path");
 									pathElement.addContent(path);
 									Element nameElement = new Element("name");
-									nameElement.addContent("Seed: " + seed + ", v" + version + ", l:" + logic + ", g:" + goal + ", m:" + mode + ", d:" + difficulty);
+									nameElement.addContent(type + ", v:" + version + ", s: " + seed + ", l:" + logic + ", g:" + goal + ", m:" + mode + ", d:" + difficulty);
 									Element descElement = new Element("desc");
-									descElement.addContent(
-											"Seed: " + seed + "\n" +
-													"Version: " + version + "\n" + 
+									descElement.addContent(		
+													type + "\n" +
+													"Version: " + version + "\n" +
+													"Seed: " + seed + "\n" +
 													"Logic: " + logic + "\n" +
 													"Goal: " + goal + "\n" +
 													"Mode: " + mode + "\n" +
